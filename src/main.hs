@@ -1,16 +1,11 @@
 module Main where
 
-import Data.IntMap (IntMap)
-import qualified Data.IntMap as IntMap
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Data.List as List
-import Data.HashMap.Strict (HashMap)
+import              Data.Set (Set)
+import qualified    Data.Set as Set
+import              Data.HashMap.Strict (HashMap)
 import qualified    Data.HashMap.Strict as H
-import Data.Ord (comparing, Down(..))
-import Data.Maybe (fromJust)
+import qualified    Data.List as List
+import              Data.Ord (Down(..))
 
 type Item = String
 type Transaction = Set Item
@@ -23,16 +18,14 @@ type Forest = [Tree]
 
 instance Show Tree where
     show = concat . drawTree
+        where   drawTree Leaf = []
+                drawTree (Node x n t) = node : subtrees
+                    where   node = "|" ++ x ++ " " ++ show n ++ "\n"
+                            subtrees = concat $ map (map prepend . drawTree) t
+                            prepend = (++) "      "
 
-drawForest = concat . map (concat . drawTree)
-drawTree Leaf = []
-drawTree (Node x n t) = node : subtrees
-    where   node = "|" ++ x ++ " " ++ show n ++ "\n"
-            subtrees = concat $ map (map prepend . drawTree) t
-            prepend x = "      " ++ x
-
-s :: [Transaction]
-s = [   Set.fromList ["f", "a", "c", "d", "g", "i", "m", "p"]
+zs :: [Transaction]
+zs = [   Set.fromList ["f", "a", "c", "d", "g", "i", "m", "p"]
     ,   Set.fromList ["a", "b", "c", "f", "l", "m", "o"]
     ,   Set.fromList ["b", "f", "h", "j", "o"]
     ,   Set.fromList ["b", "c", "k", "s", "p"]
@@ -62,13 +55,8 @@ compareTaggedItem :: TaggedItem -> TaggedItem -> Ordering
 compareTaggedItem (a, x) (b, y) | x == y    = a `compare` b
                                 | otherwise = Down x `compare` Down y
 
-a = ["a", "b", "c"]
-b = ["a", "b"]
-d = ["a", "x", "y"]
-z = ["z"]
-
 inPath :: Item -> Tree -> Bool
-inPath x Leaf = False
+inPath _ Leaf = False
 inPath x (Node y _ _)
     | x == y = True
     | otherwise = False
@@ -90,6 +78,7 @@ buildForest :: [OrderedTransaction] -> Forest
 buildForest = List.foldl' (++>) []
 
 
-s' = [["f","c","a","m","p"],["f","c","a","b","m"],["f","b"],["c","b","p"],["f","c","a","m","p"]]
-t = putStr . drawForest $ buildForest $ reorderTransaction (buildHeaderTable 3 s) s
-t' = putStr . drawForest $ buildForest s'
+zs' :: [OrderedTransaction]
+zs' = [["f","c","a","m","p"],["f","c","a","b","m"],["f","b"],["c","b","p"],["f","c","a","m","p"]]
+zs'' :: Forest
+zs'' = buildForest $ reorderTransaction (buildHeaderTable 3 zs) zs
