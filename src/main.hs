@@ -14,10 +14,12 @@ import Data.Maybe (fromJust)
 
 type Item = String
 type Transaction = Set Item
+type TaggedItem = (Item, Int)
 type OrderedTransaction = [Item]
 type Punchcard = HashMap Item Int
 type SupportCount = Int
-data Tree = Node Item Int [Tree] deriving Show
+data Tree = Leaf | Node Item Int [Tree] deriving Show
+type Forest = [Tree]
 
 s :: [Transaction]
 s = [   Set.fromList ["f", "a", "c", "d", "g", "i", "m", "p"]
@@ -44,59 +46,48 @@ reorderTransaction ordered transactions = map (untag . sort . reorder) transacti
                 Just x  -> (item, x):xs
                 Nothing -> xs
             sort = List.sortBy compareTaggedItem
-
             untag = map fst
 
-compareTaggedItem :: (Item, Int) -> (Item, Int) -> Ordering
+compareTaggedItem :: TaggedItem -> TaggedItem -> Ordering
 compareTaggedItem (a, x) (b, y) | x == y    = a `compare` b
                                 | otherwise = Down x `compare` Down y
 
---accumTree :: Tree -> Transaction -> Tree
---accumTree (Node x i subs)  = 
+a = ["a", "b", "c"]
+b = ["a", "b"]
+d = ["a", "x", "y"]
 
---s :: Data
---s = IntMap.fromList
---    [   (1, Set.fromList ["Bread", "Milk"])
---    ,   (2, Set.fromList ["Bread", "Diaper", "Beer", "Eggs"])
---    ,   (3, Set.fromList ["Milk", "Diaper", "Beer", "Coke"])
---    ,   (4, Set.fromList ["Bread", "Milk", "Diaper", "Beer"])
---    ,   (5, Set.fromList ["Bread", "Milk", "Diaper", "Coke"])
---    ]
+--accumForest :: OrderedTransaction -> Forest -> Forest
+--accumForest [] forest = forest
+--accumForest (x:xs) [] = [Node x 1 [accumTree xs Leaf]]
+--accumForest (x:xs) (t@(Node y _ _):ts)
+--    | x == y = accumTree (x:xs) t : ts
+--    | otherwise = 
 
---a :: ItemSet
---a = Set.fromList ["Milk", "Bread"]
+--accumTree :: OrderedTransaction -> Tree -> Tree
+--accumTree [] tree = tree
+--accumTree (x:xs) Leaf = Node x 1 [accumTree xs Leaf]
+--accumTree (x:xs) (Node a n subtrees) 
+--      | x == a    = Node a (succ n) (split subtrees)
+----    | otherwise = undefined
 
---b :: ItemSet
---b = Set.fromList ["Milk", "Bread", "Diaper"]
+inPath :: Item -> Tree -> Bool
+inPath x Leaf = False
+inPath x (Node y _ _)
+    | x == y = True
+    | otherwise = False
 
-----supportCount :: Data -> ItemSet -> Int
-----supportCount table itemSet = IntMap.foldl count 0 table
-----    where   count acc set = if itemSet `Set.isSubsetOf` set then succ acc else acc
+inSubtrees :: Item -> [Tree] -> Bool
+inSubtrees x = any (inPath x)
 
-----support :: Data -> ItemSet -> Support
-----support table itemSet = count / total
-----    where   count = fromIntegral (supportCount table itemSet)
-----            total = fromIntegral (IntMap.size table)
+addToSubtree :: Item -> [Tree] -> [Tree]
+addToSubtree x [] = [Node x 1 []]
+addToSubtree x (Leaf:ts) = addToSubtree x ts
+addToSubtree x (t@(Node y n tss):ts)
+    | x == y = Node y (succ n) tss : ts
+    | otherwise =  t : addToSubtree x ts
+--split :: OrderedTransaction -> [Tree] -> [Tree]
+--split (x:xs) subtrees
+--    | 
+--    where   elem' x = foldl (\a) False
 
-----confidence :: Data -> ItemSet -> ItemSet -> Confidence
-----confidence table a b = countB / countA
-----    where   countA = fromIntegral (supportCount table a)
-----            countB = fromIntegral (supportCount table b)
-
-
-----powerset :: Ord a => Set a -> Set (Set a)
-----powerset s  | Set.null s = Set.singleton Set.empty
-----            | otherwise = let p = powerset xs in p `Set.union` Set.map (Set.insert x) p
-----                where   (x, xs) = Set.deleteFindMin s
-
-----frequentItemSet :: Data -> Int -> Set ItemSet
-----frequentItemSet table minsup = Set.filter enoughSupport subsets
-----    where   subsets = IntMap.foldl collectSubsets Set.empty table
-----            collectSubsets acc set = acc `Set.union` (powerset set)
-----            enoughSupport set = supportCount table set >= minsup
-
-------apriori :: IntMap ItemSet -> Support -> Confidence -> 
-----pruneApriori :: Int -> Map ItemSet Int -> Map ItemSet Int 
-----pruneApriori support set = Map.filter (>= support) set
-
-----joinApriori :: Set ItemSet 
+--go = accumTree b . accumTree a $ Leaf
