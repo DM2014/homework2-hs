@@ -18,8 +18,18 @@ type TaggedItem = (Item, Int)
 type OrderedTransaction = [Item]
 type Punchcard = HashMap Item Int
 type SupportCount = Int
-data Tree = Leaf | Node Item Int [Tree] deriving Show
+data Tree = Leaf | Node Item Int [Tree]
 type Forest = [Tree]
+
+instance Show Tree where
+    show = concat . drawTree
+
+drawForest = concat . map (concat . drawTree)
+drawTree Leaf = []
+drawTree (Node x n t) = node : subtrees
+    where   node = "|" ++ x ++ " " ++ show n ++ "\n"
+            subtrees = concat $ map (map prepend . drawTree) t
+            prepend x = "      " ++ x
 
 s :: [Transaction]
 s = [   Set.fromList ["f", "a", "c", "d", "g", "i", "m", "p"]
@@ -57,7 +67,6 @@ b = ["a", "b"]
 d = ["a", "x", "y"]
 z = ["z"]
 
-
 inPath :: Item -> Tree -> Bool
 inPath x Leaf = False
 inPath x (Node y _ _)
@@ -79,3 +88,8 @@ t@(Node y n tss):ts ++> x:xs
 
 buildForest :: [OrderedTransaction] -> Forest
 buildForest = List.foldl' (++>) []
+
+
+s' = [["f","c","a","m","p"],["f","c","a","b","m"],["f","b"],["c","b","p"],["f","c","a","m","p"]]
+t = putStr . drawForest $ buildForest $ reorderTransaction (buildHeaderTable 3 s) s
+t' = putStr . drawForest $ buildForest s'
