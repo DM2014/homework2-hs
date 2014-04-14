@@ -55,20 +55,8 @@ compareTaggedItem (a, x) (b, y) | x == y    = a `compare` b
 a = ["a", "b", "c"]
 b = ["a", "b"]
 d = ["a", "x", "y"]
+z = ["z"]
 
---accumForest :: OrderedTransaction -> Forest -> Forest
---accumForest [] forest = forest
---accumForest (x:xs) [] = [Node x 1 [accumTree xs Leaf]]
---accumForest (x:xs) (t@(Node y _ _):ts)
---    | x == y = accumTree (x:xs) t : ts
---    | otherwise = 
-
---accumTree :: OrderedTransaction -> Tree -> Tree
---accumTree [] tree = tree
---accumTree (x:xs) Leaf = Node x 1 [accumTree xs Leaf]
---accumTree (x:xs) (Node a n subtrees) 
---      | x == a    = Node a (succ n) (split subtrees)
-----    | otherwise = undefined
 
 inPath :: Item -> Tree -> Bool
 inPath x Leaf = False
@@ -79,15 +67,15 @@ inPath x (Node y _ _)
 inSubtrees :: Item -> [Tree] -> Bool
 inSubtrees x = any (inPath x)
 
-addToSubtree :: Item -> [Tree] -> [Tree]
-addToSubtree x [] = [Node x 1 []]
-addToSubtree x (Leaf:ts) = addToSubtree x ts
-addToSubtree x (t@(Node y n tss):ts)
-    | x == y = Node y (succ n) tss : ts
-    | otherwise =  t : addToSubtree x ts
---split :: OrderedTransaction -> [Tree] -> [Tree]
---split (x:xs) subtrees
---    | 
---    where   elem' x = foldl (\a) False
+infixl 4 ++>
 
---go = accumTree b . accumTree a $ Leaf
+(++>) :: [Tree] -> OrderedTransaction -> [Tree]
+subtrees ++> [] = subtrees
+[] ++> x:xs = [Node x 1 ([] ++> xs)]
+Leaf:ts ++> x:xs = ts ++> x:xs 
+t@(Node y n tss):ts ++> x:xs
+    | x == y = Node y (succ n) (tss ++> xs) : ts
+    | otherwise =  t : (ts ++> x:xs)
+
+buildForest :: [OrderedTransaction] -> Forest
+buildForest = List.foldl' (++>) []
