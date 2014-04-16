@@ -1,10 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 module FPGrowth.Mine where
 
+import              FPGrowth.Types
+
+import              Data.HashMap.Strict (HashMap)
+--import qualified    Data.HashMap.Strict as H
+
+mineCondForest :: ItemC -> Forest -> [OrderedTransaction]
+mineCondForest x = concat . map (mineCondTree x [])
+
+mineCondTree :: ItemC -> OrderedTransaction -> Tree -> [OrderedTransaction]
+mineCondTree _ prefix Leaf = [prefix]
+mineCondTree x prefix (Node y n ts) 
+    | x == y = [prefix]
+    | x <  y = []
+    | x >= y = concat . map (mineCondTree x (y:prefix)) $ ts
 ----import              Data.Set (Set)
 --import qualified    Data.Set as Set
-----import              Data.HashMap.Strict (HashMap)
---import qualified    Data.HashMap.Strict as H
 --import qualified    Data.List as List
 --import              Data.Ord (Down(..))
 --import              Data.Monoid ((<>))
@@ -13,7 +25,6 @@ module FPGrowth.Mine where
 --import              Data.ByteString (ByteString)
 --import qualified    Data.ByteString.Lazy.Char8 as BL8
 
---import              FPGrowth.Types
 
 --instance Show Tree where
 --    show = BL8.unpack . BL.concat . drawTree

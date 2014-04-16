@@ -10,8 +10,8 @@ import qualified    Data.ByteString.Lazy.Char8 as BL8
 
 import              FPGrowth.Types
 
---instance Show Tree where
---    show = BL8.unpack . BL.concat . drawTree
+instance Show Tree where
+    show = BL8.unpack . BL.concat . drawTree
 
 drawTree :: Tree -> [BL.ByteString]
 drawTree Leaf = []

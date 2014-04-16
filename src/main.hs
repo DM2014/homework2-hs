@@ -1,14 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 import              FPGrowth.Parser
 import              FPGrowth.Types
 import              FPGrowth.Tree
+import              FPGrowth.Mine
 import              FPGrowth.Transaction
 
 import              Control.Monad.Trans.Resource
 import qualified    Data.ByteString.Lazy as BL
 import              Data.ByteString (ByteString)
 import qualified    Data.ByteString.Char8 as B8
---import qualified    Data.ByteString.Lazy.Char8 as BL8
+import qualified    Data.ByteString.Lazy.Char8 as BL8
 import              Data.Conduit
 import qualified    Data.Conduit.Binary as CB
 import qualified    Data.Conduit.List as CL
@@ -27,6 +30,12 @@ main = do
     --runResourceT $ CB.sourceFile "data/10" $$ parserConduit =$= toByteString =$ CB.sinkFile "output"
     transactions <- runResourceT $ CB.sourceFile "data/b" $$ parserConduit =$ CL.consume
 
-    let result = growForest . permuteTransaction 3 $ transactions
+    let forest = growForest . permuteTransaction 3 $ transactions
+    let a = mineCondForest (ItemC "C" 3) forest
+    print (head forest)
+    print a
+    --BL.writeFile "output" (drawForest result)
 
-    BL.writeFile "output" (drawForest result)
+--b = ItemC "B" 6
+--d = ItemC "D" 6
+--a = ItemC "A" 5
