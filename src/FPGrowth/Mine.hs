@@ -19,7 +19,7 @@ toForest minsup = growForest . permuteTransaction minsup . toTransactions
             toTransaction (xs, n) = take n . repeat . Set.fromList $ map item xs
 
 mineCondForest :: ItemC -> Forest -> [(OrderedTransaction, Count)]
-mineCondForest x = concat . map (mineCondTree x [])
+mineCondForest x (Forest forest punchcard) = concat $ map (mineCondTree x []) forest
 
 mineCondTree :: ItemC -> OrderedTransaction -> Tree -> [(OrderedTransaction, Count)]
 mineCondTree _ [] Leaf = []

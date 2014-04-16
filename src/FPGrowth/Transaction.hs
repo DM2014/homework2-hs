@@ -16,12 +16,13 @@ accumulateSet :: Punchcard -> Transaction -> Punchcard
 accumulateSet = Set.foldl' (flip accumulate)
 
 reorderTransaction :: Punchcard -> [Transaction] -> [OrderedTransaction]
-reorderTransaction ordered = filter (not . null) . map (sort . reorder)
+reorderTransaction punchcard = filter (not . null) . map (sort . reorder)
     where   reorder = Set.foldl' tag []
-            tag xs a = case H.lookup a ordered of
+            tag xs a = case H.lookup a punchcard of
                 Just x  -> (ItemC a x):xs
                 Nothing -> xs
             sort = List.sort
 
-permuteTransaction :: Count -> [Transaction] -> [OrderedTransaction]
-permuteTransaction minsup transactions = reorderTransaction (buildHeaderTable minsup transactions) transactions
+permuteTransaction :: Count -> [Transaction] -> (Punchcard, [OrderedTransaction])
+permuteTransaction minsup transactions = (punchcard, reorderTransaction punchcard transactions)
+    where   punchcard = buildHeaderTable minsup transactions
