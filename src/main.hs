@@ -1,7 +1,7 @@
 module Main where
 import              FPGrowth.Parser
 import              FPGrowth.Types
-import              FPGrowth.PermuteTransaction
+import              FPGrowth.Transaction
 
 import              Control.Monad.Trans.Resource
 import              Data.ByteString (ByteString)
@@ -22,6 +22,6 @@ toByteString = do
 main :: IO ()
 main = do
     --runResourceT $ CB.sourceFile "data/10" $$ parserConduit =$= toByteString =$ CB.sinkFile "output"
-    transactions <- runResourceT $ CB.sourceFile "data/100" $$ parserConduit =$ CL.consume
+    transactions <- runResourceT $ CB.sourceFile "data/1m" $$ parserConduit =$ CL.consume
 
-    print $ permuteTransaction 5 transactions
+    print $ permuteTransaction 10 transactions
