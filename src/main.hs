@@ -8,7 +8,7 @@ import              Control.Monad.Trans.Resource
 import qualified    Data.ByteString.Lazy as BL
 import              Data.ByteString (ByteString)
 import qualified    Data.ByteString.Char8 as B8
-import qualified    Data.ByteString.Lazy.Char8 as BL8
+--import qualified    Data.ByteString.Lazy.Char8 as BL8
 import              Data.Conduit
 import qualified    Data.Conduit.Binary as CB
 import qualified    Data.Conduit.List as CL
@@ -25,8 +25,8 @@ toByteString = do
 main :: IO ()
 main = do
     --runResourceT $ CB.sourceFile "data/10" $$ parserConduit =$= toByteString =$ CB.sinkFile "output"
-    transactions <- runResourceT $ CB.sourceFile "data/1m" $$ parserConduit =$ CL.consume
+    transactions <- runResourceT $ CB.sourceFile "data/b" $$ parserConduit =$ CL.consume
 
-    let result = growForest . permuteTransaction 10 $ transactions
+    let result = growForest . permuteTransaction 3 $ transactions
 
-    BL.writeFile "output" (BL8.pack . show $ take 100 result)
+    BL.writeFile "output" (drawForest result)

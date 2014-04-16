@@ -6,7 +6,7 @@ import qualified    Data.List as List
 import              Data.Ord (Down(..))
 import              FPGrowth.Types
 
-buildHeaderTable :: SupportCount -> [Transaction] -> Punchcard
+buildHeaderTable :: Count -> [Transaction] -> Punchcard
 buildHeaderTable minsup = H.filter (>= minsup) . List.foldl' accumulateSet H.empty
 
 -- Accumulates the occurence of items
@@ -17,7 +17,7 @@ accumulateSet :: Punchcard -> Transaction -> Punchcard
 accumulateSet = Set.foldl' (flip accumulate)
 
 reorderTransaction :: Punchcard -> [Transaction] -> [OrderedTransaction]
-reorderTransaction ordered = filter (not . null) . map (untag . sort . reorder)
+reorderTransaction ordered = filter (not . null) . map (sort . reorder)
     where   reorder = Set.foldl' tag []
             tag xs item = case H.lookup item ordered of
                 Just x  -> (item, x):xs
@@ -29,5 +29,5 @@ compareTaggedItem :: TaggedItem -> TaggedItem -> Ordering
 compareTaggedItem (a, x) (b, y) | x == y    = a `compare` b
                                 | otherwise = Down x `compare` Down y
 
-permuteTransaction :: SupportCount -> [Transaction] -> [OrderedTransaction]
+permuteTransaction :: Count -> [Transaction] -> [OrderedTransaction]
 permuteTransaction minsup transactions = reorderTransaction (buildHeaderTable minsup transactions) transactions
