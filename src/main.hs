@@ -31,8 +31,8 @@ main = do
     transactions <- runResourceT $ CB.sourceFile "data/b" $$ parserConduit =$ CL.consume
 
     let forest = growForest . permuteTransaction 3 $ transactions
-    let a = mineCondForest (ItemC "C" 3) forest
-    print (head forest)
+    let a = toForest 3 $ mineCondForest (ItemC "C" 3) forest
+    print forest
     print a
     --BL.writeFile "output" (drawForest result)
 
