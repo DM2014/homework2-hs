@@ -15,8 +15,8 @@ import              FPGrowth.Types
 
 drawTree :: Tree -> [BL.ByteString]
 drawTree Leaf = []
-drawTree (Node (x, _) n t) = node : subtrees
-    where   node = "|" <> BL.fromStrict x <> " " <> BL8.pack (show n) <> "\n"
+drawTree (Node (ItemC x i) n t) = node : subtrees
+    where   node = "|" <> BL.fromStrict x <> " " <> BL8.pack (show i) <> "| " <> BL8.pack (show n) <> "\n"
             subtrees = concat $ map (map prepend . drawTree) t
             prepend = (<>) "      "
 
