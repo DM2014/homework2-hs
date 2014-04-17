@@ -18,6 +18,7 @@ import qualified    Data.ByteString.Char8 as B8
 import              Data.Conduit
 import qualified    Data.Conduit.Binary as CB
 import qualified    Data.Conduit.List as CL
+import              System.Environment
 
 toByteString :: Conduit Transaction (ResourceT IO) ByteString
 toByteString = do
@@ -31,66 +32,26 @@ toByteString = do
 main :: IO ()
 main = do
 
-    let minsup = 10
+    args <- getArgs
 
+    if length args == 3 then do
+        let sup = read $ args !! 0
+        let conf = read $ args !! 1
+        let k = read $ args !! 2
+        go sup conf k
+    else do
+        putStrLn "\nusage:"
+        putStrLn "  ./dist/build/homework2-hs/homework2-hs <support : Double> <confidence : Double> <k : Int>"
+        putStrLn "e.g."
+        putStrLn "  cat <dataset> | ./dist/build/homework2-hs/homework2-hs 0.01 0.5 10 +RTS -K1000m -H500m -RTS\n"
+
+go :: Double -> Double -> Int -> IO () 
+go sup conf k = do
     --runResourceT $ CB.sourceFile "data/10" $$ parserConduit =$= toByteString =$ CB.sinkFile "output"
-    transactions <- runResourceT $ CB.sourceFile "data/100k" $$ parserConduit =$ CL.consume
+    transactions <- runResourceT $ CB.sourceFile "data/1m" $$ parserConduit =$ CL.consume
 
-    --let a = toForest 3 $ mineCondForest (ItemC "C" 3) forest
-    --let Forest f p = toForest 3 $ mineCondForest (ItemC "B" 6) forest
-    --let punchcard' = H.toList punchcard
+    let minsup = ceiling (fromIntegral (length transactions) * sup)
 
     let forest = growForest . permuteTransaction minsup $ transactions
-    --let subForestOfB = toForest 3 $ mineCondForest (ItemC "B" 6) forest
-    --let subForestOfD = toForest 3 $ mineCondForest (ItemC "D" 6) forest
 
-    print $ mine minsup forest
-    --print $ mine subForestOfB []
-    --print $ mine subForestOfD []
-
-    --print $ mine [] punchcard'
-    --print $ mine (toForest 3 $ mineCondForest (ItemC "D" 6) forest) ((Set.singleton "D"), 6)
-    --print $ mine forest []
-
-    --hor
-
-    where   
-            --mine forest@(Forest f punchcard) = do
-            --    --print "[]"
-            --    --print f
-            --    hor
-            --    mapM (go forest) punchcardList
-            --    where   punchcardList = H.toList punchcard
-
-            --go forest (k, v) = do
-            --    --print $ "going through " ++ show (ItemC k v)
-            --    let subForest@(Forest subF punchcard) = toForest 3 $ mineCondForest (ItemC k v) forest
-            --    --print subF
-
-            --    let punchcardList = H.toList punchcard
-            --    case punchcardList of
-            --        [] -> do
-            --            print $ " " ++ show [ItemC k 999]
-            --            return ([] :: [ItemC])
-            --        list -> do
-            --            poop <- mapM (go subForest) punchcardList
-            --            --print "----"
-            --            print (map ((:) (ItemC k v)) poop)
-            --            --print "^--^"
-
-            --            return $ concat $ (map ((:) (ItemC k v)) poop)
-                --        mapM (\x -> do 
-                --            path <- go forest x
-                --            return $ concat $ map (\p -> (ItemC k v):p) path
-                --            ) punchcardList
-
-
-                --mine subForest
-    --BL.writeFile "output" (drawForest result)
-
-hor :: IO ()
-hor = print ("==============" :: ByteString)
-
---b = ItemC "B" 6
---d = ItemC "D" 6
---a = ItemC "A" 5
+    print $ length $ mine minsup forest
