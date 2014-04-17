@@ -1,11 +1,9 @@
 homework 2
 ============
 
-# How to run the code
-
 ## Prerequisite
 
-* haskell-platform
+* [haskell-platform](http://www.haskell.org/platform/)
 * git (optional)
 
 ## Install
@@ -20,7 +18,7 @@ cabal update
 cabal install --only-dependencies
 ```
 
-## build
+## Build
 
 ```shell
 cabal build
