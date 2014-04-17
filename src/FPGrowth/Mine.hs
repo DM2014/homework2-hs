@@ -4,25 +4,21 @@ module FPGrowth.Mine where
 import              FPGrowth.Types
 import              FPGrowth.Tree
 import              FPGrowth.Transaction
-import qualified    Data.Set as Set
 
---import              Data.HashMap.Strict (HashMap)
+import qualified    Data.Set as Set
 import qualified    Data.HashMap.Strict as H
 
-type Path = (Transaction, Count)
+mine :: Count -> Forest -> [FreqSet]
+mine minsup = filter (not . Set.null . fst) . mine' minsup (Set.empty, 0)
 
-
-mine :: Count -> Forest -> [Path]
-mine minsup = mine' minsup (Set.empty, 0)
-
-mine' :: Count -> Path -> Forest -> [Path]
+mine' :: Count -> FreqSet -> Forest -> [FreqSet]
 mine' minsup suffix forest@(Forest _ punchcard) = mine'' minsup suffix forest (processPunchcard punchcard)
     where   processPunchcard = map (\(k,v) -> ItemC k v) . H.toList
 
 buildSubForest :: Count -> Forest -> ItemC -> Forest
 buildSubForest minsup forest item' = toForest minsup $ mineCondForest item' forest
 
-mine'' :: Count -> Path -> Forest -> [ItemC] -> [Path]
+mine'' :: Count -> FreqSet -> Forest -> [ItemC] -> [FreqSet]
 mine'' _ path forest [] = [path]
 mine'' minsup path@(suffix, count') forest items = concat $ [path] : map (\ (ItemC i c) ->
         mine' minsup (i `Set.insert` suffix, c) (buildSubForest minsup forest (ItemC i c))
