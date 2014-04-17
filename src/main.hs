@@ -6,8 +6,9 @@ import              FPGrowth.Types
 import              FPGrowth.Tree
 import              FPGrowth.Mine
 import              FPGrowth.Transaction
+import              FPGrowth.AssociationRule
 
-import qualified    Data.HashMap.Strict  as   H
+--import qualified    Data.HashMap.Strict  as   H
 --import qualified    Data.Set as Set
 
 import              Control.Monad.Trans.Resource
@@ -19,6 +20,7 @@ import              Data.Conduit
 import qualified    Data.Conduit.Binary as CB
 import qualified    Data.Conduit.List as CL
 import              System.Environment
+import              System.IO (stdin)
 
 toByteString :: Conduit Transaction (ResourceT IO) ByteString
 toByteString = do
@@ -47,8 +49,8 @@ main = do
 
 go :: Double -> Double -> Int -> IO () 
 go sup conf k = do
-    --runResourceT $ CB.sourceFile "data/10" $$ parserConduit =$= toByteString =$ CB.sinkFile "output"
-    transactions <- runResourceT $ CB.sourceFile "data/1m" $$ parserConduit =$ CL.consume
+
+    transactions <- runResourceT $ CB.sourceHandle stdin $$ parserConduit =$ CL.consume
 
     let minsup = ceiling (fromIntegral (length transactions) * sup)
 
