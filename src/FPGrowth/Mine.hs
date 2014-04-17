@@ -6,9 +6,46 @@ import              FPGrowth.Tree
 import              FPGrowth.Transaction
 import qualified    Data.Set as Set
 
-import              Data.HashMap.Strict (HashMap)
---import qualified    Data.HashMap.Strict as H
+--import              Data.HashMap.Strict (HashMap)
+import qualified    Data.HashMap.Strict as H
 
+type Path = ([Item], Count)
+
+
+mine :: Count -> Forest -> [Path]
+mine minsup = mine' minsup ([], 0)
+
+mine' :: Count -> Path -> Forest -> [Path]
+mine' minsup suffix forest@(Forest _ punchcard) = mine'' minsup suffix forest (processPunchcard punchcard)
+    where   processPunchcard = map (\(k,v) -> ItemC k v) . H.toList
+
+--subForest = toForest 3 $ mineCondForest (ItemC k v) forest
+buildSubForest :: Count -> Forest -> ItemC -> Forest
+buildSubForest minsup forest item' = toForest minsup $ mineCondForest item' forest
+
+mine'' :: Count -> Path -> Forest -> [ItemC] -> [Path]
+mine'' _ path forest [] = [path]
+mine'' minsup path@(suffix, count') forest items = concat $ [path] : map (\ (ItemC i c) ->
+        mine' minsup (i:suffix, c) (buildSubForest minsup forest (ItemC i c))
+    ) items
+--mine' suffix forest items = concat $ map (prepend) $ map (mine suffix) subForests
+--    where   subForests = map (buildSubForest forest) items
+--            prepend p = suffix:p
+--mine :: Path -> Forest -> [Path]
+--mine suffix forest@(Forest f punchcard) = mine' suffix forest punchcardList
+--    where   punchcardList = map toItemC (H.toList punchcard)
+--            toItemC (k, v) = ItemC k v
+--    --map (fuck suffix) . map subForest $ punchcardList
+
+--mine' suffix forest [] = [suffix]
+--mine' suffix forest [x] = [x:suffix]
+--mine' suffix forest xs = concat $ map (mine suffix . subForest) xs
+--    where
+--            subForest (ItemC item count) = toForest 3 $ mineCondForest (ItemC item count) forest
+--mine (Forest f punchcard) = (H.toList punchcard)
+    --where   subForest = toForest 3 $ mineCondForest (ItemC k v) forest
+--mine :: Forest -> (Transaction, Count) -> [(Transaction, Count)]
+--mine (Forest forest punchcard) (suffix, count)
 
 toForest :: Count -> [(OrderedTransaction, Count)] -> Forest
 toForest minsup = growForest . permuteTransaction minsup . toTransactions
@@ -19,64 +56,12 @@ toForest minsup = growForest . permuteTransaction minsup . toTransactions
             toTransaction (xs, n) = take n . repeat . Set.fromList $ map item xs
 
 mineCondForest :: ItemC -> Forest -> [(OrderedTransaction, Count)]
-mineCondForest x (Forest forest punchcard) = concat $ map (mineCondTree x []) forest
+mineCondForest x (Forest forest _) = concat $ map (mineCondTree x []) forest
 
 mineCondTree :: ItemC -> OrderedTransaction -> Tree -> [(OrderedTransaction, Count)]
-mineCondTree _ [] Leaf = []
 mineCondTree _ prefix Leaf = [(prefix, 0)]
 mineCondTree x prefix (Node y n ts) 
     | x == y = [(prefix, n)]
     | x <  y = []
     | x >= y = concat . map (mineCondTree x (y:prefix)) $ ts
-----import              Data.Set (Set)
---import qualified    Data.Set as Set
---import qualified    Data.List as List
---import              Data.Ord (Down(..))
---import              Data.Monoid ((<>))
---import qualified    Data.ByteString.Lazy as BL
---import qualified    Data.ByteString as B
---import              Data.ByteString (ByteString)
---import qualified    Data.ByteString.Lazy.Char8 as BL8
-
-
---instance Show Tree where
---    show = BL8.unpack . BL.concat . drawTree
-
---drawTree :: Tree -> [BL.ByteString]
---drawTree Leaf = []
---drawTree (Node x n t) = node : subtrees
---    where   node = "|" <> BL.fromStrict x <> " " <> BL8.pack (show n) <> "\n"
---            subtrees = concat $ map (map prepend . drawTree) t
---            prepend = (<>) "      "
-
---drawForest :: Forest -> BL.ByteString
---drawForest forest = BL.concat $ map (BL.concat . drawTree) forest
-----zs :: [Transaction]
-----zs = [   Set.fromList ["f", "a", "c", "d", "g", "i", "m", "p"]
-----    ,   Set.fromList ["a", "b", "c", "f", "l", "m", "o"]
-----    ,   Set.fromList ["b", "f", "h", "j", "o"]
-----    ,   Set.fromList ["b", "c", "k", "s", "p"]
-----    ,   Set.fromList ["a", "f", "c", "e", "l", "p", "m", "n"]
-----    ]
-
---inPath :: Item -> Tree -> Bool
---inPath _ Leaf = False
---inPath x (Node y _ _)
---    | x == y = True
---    | otherwise = False
-
---inSubtrees :: Item -> [Tree] -> Bool
---inSubtrees x = any (inPath x)
-
---infixl 4 ++>
-
---(++>) :: [Tree] -> OrderedTransaction -> [Tree]
---subtrees ++> [] = subtrees
---[] ++> x:xs = [Node x 1 ([] ++> xs)]
---Leaf:ts ++> x:xs = ts ++> x:xs 
---t@(Node y n tss):ts ++> x:xs
---    | x == y = Node y (succ n) (tss ++> xs) : ts
---    | otherwise =  t : (ts ++> x:xs)
-
---growForest :: [OrderedTransaction] -> Forest
---growForest = List.foldl' (++>) []
+mineCondTree _ _ (Node _ _ _) = []
