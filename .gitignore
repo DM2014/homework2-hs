@@ -10,3 +10,6 @@ cabal-dev
 cabal.sandbox.config
 data/*
 output
+
+homework2-hs.*
+output*
