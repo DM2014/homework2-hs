@@ -25,3 +25,11 @@ part:
 
 	hp2ps -c homework2-hs.hp
 	gv homework2-hs.ps 
+
+tp:	
+	cabal build
+	cat 1100kt |\
+	time ./dist/build/homework2-hs/homework2-hs 0.5 0.5 10 +RTS -K2000m -H500m  -sstderr -p -s -xt -hy -RTS > output+
+
+	hp2ps -c homework2-hs.hp
+	gv homework2-hs.ps 

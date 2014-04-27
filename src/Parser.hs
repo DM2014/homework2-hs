@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Parser (processRawData) where
+module Parser (processRawData, processRawData2Transaction, processTransaction) where
 
 import              Control.Monad (replicateM_, void)
 import              Control.Monad.Trans.Resource
@@ -19,21 +19,30 @@ import qualified    Data.HashMap.Strict as H
 import              Data.Set (Set)
 import qualified    Data.Set as Set
 import qualified    Data.ByteString as B
+import qualified    Data.ByteString.Char8 as B8
 
-data Product = Product !UserID !ProductID
+data Product = Product !UserID !ProductID deriving (Show)
 type ProductID = ByteString
 type UserID = ByteString
 type Table a = H.HashMap UserID a
 type ItemSet = Set ProductID
 
 processRawData :: ResourceT IO ()
-processRawData = CB.sourceHandle stdin $$ rawDataParserConduit =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+processRawData = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+
+processRawData2Transaction :: ResourceT IO ()
+processRawData2Transaction = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= awaitForever (yield . printProduct) =$ CB.sinkHandle stdout
+    where   printProduct (Product u p) = u <> " " <> p <> "\n"
+
+processTransaction :: ResourceT IO ()
+processTransaction = CB.sourceHandle stdin $$ parserConduit parseTransaction =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
 
 
 toByteString :: Conduit (Table ItemSet) (ResourceT IO) ByteString
 toByteString = do
     t <- await
     case t of
+        --Just table -> yield . B8.pack . show . H.size $ table
         Just table -> mapM_ (yield . toLine) (H.toList table)
         Nothing -> return ()
     where   toLine (_, v) = Set.foldl' (\a b -> a <> " " <> b) B.empty v <> "\n"
@@ -48,9 +57,9 @@ filterUnknown = do
         Just (Product u         p        ) -> yield (Product u p) >> filterUnknown
         Nothing -> return ()
 
-rawDataParserConduit :: Conduit ByteString (ResourceT IO) Product
-rawDataParserConduit = do
-    conduitParserEither parserSection =$= awaitForever go
+parserConduit :: Parser Product -> Conduit ByteString (ResourceT IO) Product
+parserConduit parser = do
+    conduitParserEither parser =$= awaitForever go
     where   go (Left s) = error $ show s
             go (Right (_, p)) = yield p
 
@@ -83,8 +92,16 @@ parseProduct = string "product/productId: " >> parseLine
 parseUser :: Parser UserID
 parseUser = string "review/userId: " >> parseLine
 
-parserSection :: Parser Product
-parserSection = do
+parseTransaction :: Parser Product
+parseTransaction = do
+    userID <- takeTill (== 0x20)
+    take 1
+    productID <- takeTill (== 0xa)
+    take 1
+    return (Product (B.copy userID) (B.copy productID))
+
+parseSection :: Parser Product
+parseSection = do
     productID <- parseProduct
     replicateM_ 2 dropLine
     userID <- parseUser

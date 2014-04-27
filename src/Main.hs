@@ -32,8 +32,8 @@ main :: IO ()
 main = do
 
     runResourceT processRawData
-
-    print "fuck"
+    --runResourceT processRawData2Transaction
+    --runResourceT processTransaction
     --args <- getArgs
 
     --if length args == 3 then do
