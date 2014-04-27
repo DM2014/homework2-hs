@@ -19,17 +19,12 @@ import qualified    Data.HashMap.Strict as H
 import              Data.Set (Set)
 import qualified    Data.Set as Set
 import qualified    Data.ByteString as B
-import qualified    Data.ByteString.Char8 as B8
 
 data Product = Product !UserID !ProductID
 type ProductID = ByteString
 type UserID = ByteString
 type Table a = H.HashMap UserID a
 type ItemSet = Set ProductID
-
-
-printProduct :: Product -> ByteString
-printProduct (Product u p) = u <> " " <> p <> "\n"
 
 processRawData :: ResourceT IO ()
 processRawData = CB.sourceHandle stdin $$ rawDataParserConduit =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
@@ -39,9 +34,9 @@ toByteString :: Conduit (Table ItemSet) (ResourceT IO) ByteString
 toByteString = do
     t <- await
     case t of
-        Just table -> yield $ B8.pack $ show $ H.size  table-- mapM_ (yield . toLine) (H.toList table)
+        Just table -> mapM_ (yield . toLine) (H.toList table)
         Nothing -> return ()
-    --where   toLine (_, v) = Set.foldl' (\a b -> a <> " " <> b) B.empty v <> "\n"
+    where   toLine (_, v) = Set.foldl' (\a b -> a <> " " <> b) B.empty v <> "\n"
 
 
 filterUnknown :: Conduit Product (ResourceT IO) Product
@@ -60,10 +55,11 @@ rawDataParserConduit = do
             go (Right (_, p)) = yield p
 
 accumulateProduct :: Table ItemSet -> Conduit Product (ResourceT IO) (Table ItemSet)
-accumulateProduct table = do
+accumulateProduct !table = do
     p <- await
     case p of
-        Just (Product userID productID) -> accumulateProduct $ H.insertWith (\new set -> new `Set.union` set) userID (Set.singleton productID) table
+        Just (Product userID productID) -> let table' = H.insertWith (\new set -> new `Set.union` set) userID (Set.singleton productID) table
+                                            in accumulateProduct table'
         Nothing -> yield table
 
 
@@ -77,7 +73,7 @@ parseLine :: Parser ByteString
 parseLine = do
     a <- takeTill (== 0xa)
     take 1
-    return a
+    return (B.copy a)
 
 -- | raw data
 
