@@ -21,7 +21,7 @@ import qualified    Data.Set as Set
 import qualified    Data.ByteString as B
 import qualified    Data.ByteString.Char8 as B8
 
-data Product = Product UserID ProductID
+data Product = Product !UserID !ProductID
 type ProductID = ByteString
 type UserID = ByteString
 type Table a = H.HashMap UserID a
