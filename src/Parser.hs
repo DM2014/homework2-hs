@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Parser (processRawData, processRawData2Transaction, processTransaction) where
+module Parser (processRawData) where
 
 import              Control.Monad (replicateM_, void)
 import              Control.Monad.Trans.Resource
@@ -18,24 +18,29 @@ import              System.IO (stdin, stdout)
 import qualified    Data.HashMap.Strict as H
 import              Data.Set (Set)
 import qualified    Data.Set as Set
-import qualified    Data.ByteString as B
-import qualified    Data.ByteString.Char8 as B8
+
+import qualified    Data.ByteString.Short as BS
+import              Data.ByteString.Short (ShortByteString)
+import              Data.Hashable (Hashable, hashWithSalt)
 
 data Product = Product !UserID !ProductID deriving (Show)
-type ProductID = ByteString
-type UserID = ByteString
+type ProductID = ShortByteString
+type UserID = ShortByteString
 type Table a = H.HashMap UserID a
 type ItemSet = Set ProductID
+
+instance Hashable ShortByteString where
+    hashWithSalt n = hashWithSalt n . BS.fromShort
 
 processRawData :: ResourceT IO ()
 processRawData = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
 
-processRawData2Transaction :: ResourceT IO ()
-processRawData2Transaction = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= awaitForever (yield . printProduct) =$ CB.sinkHandle stdout
-    where   printProduct (Product u p) = u <> " " <> p <> "\n"
+--processRawData2Transaction :: ResourceT IO ()
+--processRawData2Transaction = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= awaitForever (yield . printProduct) =$ CB.sinkHandle stdout
+--    where   printProduct (Product u p) = BS.fromShort $ u <> " " <> p <> "\n"
 
-processTransaction :: ResourceT IO ()
-processTransaction = CB.sourceHandle stdin $$ parserConduit parseTransaction =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+--processTransaction :: ResourceT IO ()
+--processTransaction = CB.sourceHandle stdin $$ parserConduit parseTransaction =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
 
 
 toByteString :: Conduit (Table ItemSet) (ResourceT IO) ByteString
@@ -45,7 +50,7 @@ toByteString = do
         --Just table -> yield . B8.pack . show . H.size $ table
         Just table -> mapM_ (yield . toLine) (H.toList table)
         Nothing -> return ()
-    where   toLine (_, v) = Set.foldl' (\a b -> a <> " " <> b) B.empty v <> "\n"
+    where   toLine (_, v) = BS.fromShort $ Set.foldl' (\a b -> a <> " " <> b) BS.empty v <> "\n"
 
 
 filterUnknown :: Conduit Product (ResourceT IO) Product
@@ -71,18 +76,14 @@ accumulateProduct !table = do
                                             in accumulateProduct table'
         Nothing -> yield table
 
-
-
-
-
 dropLine :: Parser ()
 dropLine = skipWhile (/= 0xa) >> void (take 1) 
 
-parseLine :: Parser ByteString
+parseLine :: Parser ShortByteString
 parseLine = do
     a <- takeTill (== 0xa)
     take 1
-    return (B.copy a)
+    return (BS.toShort a)
 
 -- | raw data
 
@@ -91,14 +92,6 @@ parseProduct = string "product/productId: " >> parseLine
 
 parseUser :: Parser UserID
 parseUser = string "review/userId: " >> parseLine
-
-parseTransaction :: Parser Product
-parseTransaction = do
-    userID <- takeTill (== 0x20)
-    take 1
-    productID <- takeTill (== 0xa)
-    take 1
-    return (Product (B.copy userID) (B.copy productID))
 
 parseSection :: Parser Product
 parseSection = do
