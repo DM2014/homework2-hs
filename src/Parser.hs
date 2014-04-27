@@ -5,7 +5,7 @@ module Parser (processRawData) where
 
 import              Control.Monad (replicateM_, void)
 import              Control.Monad.Trans.Resource
-import              Data.Attoparsec.ByteString.Lazy
+import              Data.Attoparsec.ByteString
 import              Data.ByteString (ByteString)
 import              Data.Conduit
 import              Data.Conduit.Attoparsec
