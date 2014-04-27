@@ -23,7 +23,8 @@ import qualified    Data.ByteString.Short as BS
 import              Data.ByteString.Short (ShortByteString)
 import              Data.Hashable (Hashable, hashWithSalt)
 
-data Product = Product !UserID !ProductID deriving (Show)
+data Product = Product  {-# UNPACK #-} !UserID 
+                        {-# UNPACK #-} !ProductID deriving (Show)
 type ProductID = ShortByteString
 type UserID = ShortByteString
 type Table a = H.HashMap UserID a

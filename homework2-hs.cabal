@@ -31,5 +31,5 @@ executable homework2-hs
                     
   hs-source-dirs:      src
   default-language:    Haskell2010
-  -- ghc-options:        -Wall -fno-warn-unused-do-bind -fno-warn-orphans -O -rtsopts  -fforce-recomp
+  -- ghc-options:        -Wall -fno-warn-unused-do-bind -fno-warn-orphans -O -rtsopts -fforce-recomp
   ghc-options:        -Wall -fno-warn-unused-do-bind -fno-warn-orphans -O -rtsopts -prof -auto-all -caf-all -fforce-recomp
