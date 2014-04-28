@@ -9,7 +9,6 @@ module Main where
 --import              FPGrowth.AssociationRule
 import              Parser
 
-import              Control.Monad.Trans.Resource
 --import              Data.Monoid ((<>))
 --import qualified    Data.ByteString.Lazy as BL
 --import              Data.ByteString (ByteString)
@@ -31,7 +30,12 @@ import              Control.Monad.Trans.Resource
 main :: IO ()
 main = do
 
-    runResourceT processRawData
+    --runResourceT processRawData
+
+    transactions <- readTransaction
+
+    print $ head transactions
+
     --runResourceT processRawData2Transaction
     --runResourceT processTransaction
     --args <- getArgs

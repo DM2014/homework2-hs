@@ -1,54 +1,48 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Parser (processRawData) where
+module Parser (processRawData, readTransaction) where
 
-import              Control.Monad (replicateM_, void)
+import              Control.Applicative             ((<$>))
+import              Control.Monad                   (replicateM_, void)
 import              Control.Monad.Trans.Resource
 import              Data.Attoparsec.ByteString
-import              Data.ByteString (ByteString)
+import              Data.ByteString                 (ByteString)
 import              Data.Conduit
 import              Data.Conduit.Attoparsec
-import qualified    Data.Conduit.Binary as CB
-import              Data.Monoid ((<>))
-import              Prelude hiding (take)
-import              System.IO (stdin, stdout)
-
-
-import qualified    Data.HashMap.Strict as H
-import              Data.Set (Set)
-import qualified    Data.Set as Set
-
-import qualified    Data.ByteString.Short as BS
-import              Data.ByteString.Short (ShortByteString)
-import              Data.Hashable (Hashable, hashWithSalt)
+import qualified    Data.Conduit.Binary             as CB
+import qualified    Data.Conduit.List               as CL
+import qualified    Data.ByteString.Short           as BS
+import              Data.ByteString.Short           (ShortByteString)
+import qualified    Data.HashMap.Strict             as H
+import              Data.Hashable                   (Hashable, hashWithSalt)
+import              Data.Monoid                     ((<>))
+import qualified    Data.Set                        as Set
+import              Data.Set                        (Set)
+import              Prelude                         hiding (take)
+import              System.IO                       (stdin, stdout)
 
 data Product = Product  {-# UNPACK #-} !UserID 
                         {-# UNPACK #-} !ProductID deriving (Show)
 type ProductID = ShortByteString
 type UserID = ShortByteString
 type Table a = H.HashMap UserID a
-type ItemSet = Set ProductID
+type Transaction = Set ProductID
 
 instance Hashable ShortByteString where
     hashWithSalt n = hashWithSalt n . BS.fromShort
 
-processRawData :: ResourceT IO ()
-processRawData = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+processRawData :: IO ()
+processRawData = runResourceT $ CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
 
---processRawData2Transaction :: ResourceT IO ()
---processRawData2Transaction = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= awaitForever (yield . printProduct) =$ CB.sinkHandle stdout
---    where   printProduct (Product u p) = BS.fromShort $ u <> " " <> p <> "\n"
-
---processTransaction :: ResourceT IO ()
---processTransaction = CB.sourceHandle stdin $$ parserConduit parseTransaction =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+readTransaction :: IO [Transaction]
+readTransaction = runResourceT $ CB.sourceHandle stdin $$ parserConduit parseTransaction =$= CL.consume
 
 
-toByteString :: Conduit (Table ItemSet) (ResourceT IO) ByteString
+toByteString :: Conduit (Table Transaction) (ResourceT IO) ByteString
 toByteString = do
     t <- await
     case t of
-        --Just table -> yield . B8.pack . show . H.size $ table
         Just table -> mapM_ (yield . toLine) (H.toList table)
         Nothing -> return ()
     where   toLine (_, v) = BS.fromShort $ Set.foldl' (\a b -> a <> " " <> b) BS.empty v <> "\n"
@@ -63,13 +57,13 @@ filterUnknown = do
         Just (Product u         p        ) -> yield (Product u p) >> filterUnknown
         Nothing -> return ()
 
-parserConduit :: Parser Product -> Conduit ByteString (ResourceT IO) Product
+parserConduit :: Parser a -> Conduit ByteString (ResourceT IO) a
 parserConduit parser = do
     conduitParserEither parser =$= awaitForever go
     where   go (Left s) = error $ show s
             go (Right (_, p)) = yield p
 
-accumulateProduct :: Table ItemSet -> Conduit Product (ResourceT IO) (Table ItemSet)
+accumulateProduct :: Table Transaction -> Conduit Product (ResourceT IO) (Table Transaction)
 accumulateProduct !table = do
     p <- await
     case p of
@@ -102,3 +96,13 @@ parseSection = do
     replicateM_ 6 dropLine
     choice [dropLine, endOfInput]
     return (Product userID productID)
+
+-- | Transaction
+parseItem :: Parser ProductID
+parseItem = BS.toShort <$> takeTill (\c -> c == 0x20 || c == 0xa)
+
+parseTransaction :: Parser Transaction
+parseTransaction = do
+    transaction <- parseItem `sepBy'` (string " ")
+    take 1
+    return (Set.fromList transaction)
