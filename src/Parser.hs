@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Parser (processRawData, readTransaction) where
+module Parser (processRawData, parseTransactionC) where
 
 import              Control.Applicative             ((<$>))
 import              Control.Monad                   (replicateM_, void)
@@ -11,7 +11,6 @@ import              Data.ByteString                 (ByteString)
 import              Data.Conduit
 import              Data.Conduit.Attoparsec
 import qualified    Data.Conduit.Binary             as CB
-import qualified    Data.Conduit.List               as CL
 import qualified    Data.ByteString.Short           as BS
 import              Data.ByteString.Short           (ShortByteString)
 import qualified    Data.HashMap.Strict             as H
@@ -32,11 +31,11 @@ type Transaction = Set ProductID
 instance Hashable ShortByteString where
     hashWithSalt n = hashWithSalt n . BS.fromShort
 
-processRawData :: IO ()
-processRawData = runResourceT $ CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
+processRawData :: ResourceT IO ()
+processRawData = CB.sourceHandle stdin $$ parserConduit parseSection =$= filterUnknown =$= accumulateProduct H.empty =$= toByteString =$ CB.sinkHandle stdout
 
-readTransaction :: IO [Transaction]
-readTransaction = runResourceT $ CB.sourceHandle stdin $$ parserConduit parseTransaction =$= CL.consume
+parseTransactionC :: Conduit ByteString (ResourceT IO) Transaction
+parseTransactionC = parserConduit parseTransaction
 
 
 toByteString :: Conduit (Table Transaction) (ResourceT IO) ByteString
