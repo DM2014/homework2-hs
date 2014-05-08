@@ -1,6 +1,20 @@
+
 all:
 	cabal build
 	cat data/final | time ./dist/build/homework2-hs/homework2-hs 0.001 0.01 10 +RTS -K2000m -H500m -RTS
+
+part:
+	cabal build
+	cat data/final | head -n1000000 |\
+	time ./dist/build/homework2-hs/homework2-hs 0.0007 0.01 10 +RTS -K2000m -H500m -RTS > output
+
+p:
+	cat data/final | head -n2000000 |\
+	time ./dist/build/homework2-hs/homework2-hs 0.001 0.01 10 +RTS -sstderr -p -s -xt -hy -RTS
+
+
+	hp2ps -c homework2-hs.hp
+	open homework2-hs.ps 
 
 allraw:
 	cabal build

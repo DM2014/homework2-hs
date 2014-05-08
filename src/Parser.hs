@@ -7,6 +7,7 @@ import              Control.Applicative             ((<$>))
 import              Control.Monad                   (replicateM_, void)
 import              Control.Monad.Trans.Resource
 import              Data.Attoparsec.ByteString
+--import qualified    Data.ByteString                 as B
 import              Data.ByteString                 (ByteString)
 import              Data.Conduit
 import              Data.Conduit.Attoparsec

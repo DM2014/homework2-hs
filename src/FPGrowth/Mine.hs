@@ -19,8 +19,8 @@ buildSubForest :: Count -> Forest -> ItemC -> Forest
 buildSubForest minsup forest item' = toForest minsup $ mineCondForest item' forest
 
 mine'' :: Count -> FreqSet -> Forest -> [ItemC] -> [FreqSet]
-mine'' _ path forest [] = [path]
-mine'' minsup path@(suffix, count') forest items = concat $ [path] : map (\ (ItemC i c) ->
+mine'' _ path _ [] = [path]
+mine'' minsup path@(suffix, _) forest items = concat $ [path] : map (\ (ItemC i c) ->
         mine' minsup (i `Set.insert` suffix, c) (buildSubForest minsup forest (ItemC i c))
     ) items
 
